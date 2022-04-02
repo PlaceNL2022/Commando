@@ -41,27 +41,27 @@ app.get('/api/stats', (req, res) => {
 
 app.post('/updateorders', upload.single('image'), async (req, res) => {
     if (!req.body.reason || !req.body.password || req.body.password != process.env.PASSWORD) {
-        res.send('Ongeldig wachtwoord!');
+        res.send('Špatné heslo!');
         fs.unlinkSync(req.file.path);
         return;
     }
 
     if (req.file.mimetype !== 'image/png') {
-        res.send('Bestand moet een PNG zijn!');
+        res.send('Soubor musí být PNG!');
         fs.unlinkSync(req.file.path);
         return;
     }
 
     getPixels(req.file.path, 'image/png', function (err, pixels) {
         if (err) {
-            res.send('Fout bij lezen bestand!');
+            res.send('Chyba čtení souboru!');
             console.log(err);
             fs.unlinkSync(req.file.path);
             return
         }
 
         if (pixels.data.length !== 4000000) {
-            res.send('Bestand moet 1000x1000 zijn!');
+            res.send('Soubor musí být 1000x1000 pixelů!');
             fs.unlinkSync(req.file.path);
             return;
         }
@@ -73,7 +73,7 @@ app.post('/updateorders', upload.single('image'), async (req, res) => {
 
             const hex = rgbToHex(r, g, b);
             if (VALID_COLORS.indexOf(hex) === -1) {
-                res.send(`Pixel op ${i % 1000}, ${Math.floor(i / 1000)} heeft ongeldige kleur.`);
+                res.send(`Pixel na ${i % 1000}, ${Math.floor(i / 1000)} má špatnou barvu.`);
                 fs.unlinkSync(req.file.path);
                 return;
             }

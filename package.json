@@ -1,21 +1,21 @@
 {
   "name": "commando",
   "version": "1.0.0",
-  "description": "De centrale orderserver",
+  "description": "PlaceCZ Generál",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/PlaceNL/Commando.git"
+    "url": "git+https://github.com/PlaceCZ/Server.git"
   },
   "author": "NoahvdAa",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/PlaceNL/Commando/issues"
+    "url": "https://github.com/PlaceCZ/Server/issues"
   },
-  "homepage": "https://github.com/PlaceNL/Commando#readme",
+  "homepage": "https://github.com/PlaceCZ/Server#readme",
   "dependencies": {
     "express.js": "^1.0.0",
     "get-pixels": "^3.3.3",
