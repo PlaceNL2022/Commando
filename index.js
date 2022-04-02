@@ -8,7 +8,7 @@ const getPixels = require('get-pixels');
 const multer = require('multer')
 const upload = multer({ dest: `${__dirname}/uploads/` });
 
-const VALID_COLORS = ['#FF4500', '#FFA800', '#FFD635', '#00A368', '#7EED56', '#2450A4', '#3690EA', '#51E9F4', '#811E9F', '#B44AC0', '#FF99AA', '#9C6926', '#000000', '#898D90', '#D4D7D9', '#FFFFFF'];
+const VALID_COLORS = ['#BE0039', '#FF4500', '#FFA800', '#FFD635', '#00A368', '#00CC78', '#7EED56', '#00756F', '#009EAA', '#2450A4', '#3690EA', '#51E9F4', '#493AC1', '#6A5CFF', '#811E9F', '#B44AC0', '#FF3881', '#FF99AA', '#6D482F', '#9C6926', '#000000', '#898D90', '#D4D7D9', '#FFFFFF'];
 
 var appData = {
     currentMap: 'blank.png',
@@ -60,20 +60,20 @@ app.post('/updateorders', upload.single('image'), async (req, res) => {
             return
         }
 
-        if (pixels.data.length !== 4000000) {
-            res.send('Bestand moet 1000x1000 zijn!');
+        if (pixels.data.length !== 8000000) {
+            res.send('Bestand moet 2000x1000 zijn!');
             fs.unlinkSync(req.file.path);
             return;
         }
 
-        for (var i = 0; i < 1000000; i++) {
+        for (var i = 0; i < 2000000; i++) {
             const r = pixels.data[i * 4];
             const g = pixels.data[(i * 4) + 1];
             const b = pixels.data[(i * 4) + 2];
 
             const hex = rgbToHex(r, g, b);
             if (VALID_COLORS.indexOf(hex) === -1) {
-                res.send(`Pixel op ${i % 1000}, ${Math.floor(i / 1000)} heeft ongeldige kleur.`);
+                res.send(`Pixel op ${i % 2000}, ${Math.floor(i / 2000)} heeft ongeldige kleur.`);
                 fs.unlinkSync(req.file.path);
                 return;
             }
@@ -123,7 +123,7 @@ wsServer.on('connection', (socket) => {
                 break;
             case 'placepixel':
                 const { x, y, color } = data;
-                if (x === undefined || y === undefined || color === undefined && x < 0 || x > 999 || y < 0 || y > 999 || color < 0 || color > 32) return;
+                if (x === undefined || y === undefined || color === undefined && x < 0 || x > 1999 || y < 0 || y > 1999 || color < 0 || color > 32) return;
                 console.log(`[${new Date().toLocaleString()}] Pixel placed: ${x}, ${y}: ${color}`);
                 break;
             default:
