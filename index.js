@@ -8,6 +8,8 @@ const getPixels = require('get-pixels');
 const multer = require('multer')
 const upload = multer({ dest: `${__dirname}/uploads/` });
 
+const PORT = 3987;
+
 const VALID_COLORS = ['#BE0039', '#FF4500', '#FFA800', '#FFD635', '#00A368', '#00CC78', '#7EED56', '#00756F', '#009EAA', '#2450A4', '#3690EA', '#51E9F4', '#493AC1', '#6A5CFF', '#811E9F', '#B44AC0', '#FF3881', '#FF99AA', '#6D482F', '#9C6926', '#000000', '#898D90', '#D4D7D9', '#FFFFFF'];
 
 var appData = {
@@ -21,7 +23,9 @@ if (fs.existsSync(`${__dirname}/data.json`)) {
     appData = require(`${__dirname}/data.json`);
 }
 
-const server = app.listen(3987);
+
+console.log(`Server starting at port ${PORT}`);
+const server = app.listen(PORT);
 const wsServer = new ws.Server({ server: server, path: '/api/ws' });
 
 app.use('/maps', (req, res, next) => {
@@ -94,8 +98,10 @@ app.post('/updateorders', upload.single('image'), async (req, res) => {
     });
 });
 
-wsServer.on('connection', (socket) => {
-    console.log(`[${new Date().toLocaleString()}] [+] Client connected`);
+wsServer.on('connection', (socket, req) => {
+    var client_ip = req.headers['CF-Connecting-IP'] || req.headers['X-Forwarded-For'] || req.headers['X-Real-IP'] || req.socket.remoteAddress;
+    var client_ua = req.headers['user-agent'] || "missing user-agent";
+    console.log(`[${new Date().toLocaleString()}] [+] Client connected from '${client_ip}' - '${client_ua}'`);
 
     socket.on('close', () => {
         console.log(`[${new Date().toLocaleString()}] [-] Client disconnected`);
