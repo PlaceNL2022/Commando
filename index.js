@@ -123,7 +123,7 @@ wsServer.on('connection', (socket) => {
                 break;
             case 'placepixel':
                 const { x, y, color } = data;
-                if (x !== undefined || y === undefined || color === undefined && x < 0 || x > 999 || y < 0 || y > 999 || color < 0 || color > 32) return;
+                if (x === undefined || y === undefined || color === undefined && x < 0 || x > 999 || y < 0 || y > 999 || color < 0 || color > 32) return;
                 console.log(`[${new Date().toLocaleString()}] Pixel placed: ${x}, ${y}: ${color}`);
                 break;
             default:
