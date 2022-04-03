@@ -147,7 +147,6 @@ setInterval(() => {
     brandUsage = Array.from(wsServer.clients).map(c => c.brand).reduce(function (acc, curr) {
         return acc[curr] ? ++acc[curr] : acc[curr] = 1, acc
     }, {});
-    console.log(brandUsage);
 }, 1000);
 
 function rgbToHex(r, g, b) {
