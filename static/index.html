@@ -15,6 +15,10 @@
         crossorigin="anonymous" referrerpolicy="no-referrer" />
 
     <style>
+        html, body {
+            background: #eeeeee;
+        }
+
         .large-statistic {
             font-size: 5rem !important;
         }
@@ -42,7 +46,7 @@
     </div>
     <div class="card">
         <div class="card-body text-center">
-            <img class="current-order" width="1000" height="1000" style="border: 1px solid black;" />
+            <img class="current-order" width="750" height="750" style="border: 1px solid black;" />
             <h3>huidige orders</h3>
         </div>
     </div>
@@ -72,7 +76,7 @@
                 document.querySelector('[data-statistic=\'connectionCount\']').innerText = data.connectionCount;
                 document.querySelector('.current-order').src = `/maps/${data.currentMap}`;
                 document.querySelector('.maphistory').innerHTML = data.mapHistory.reverse().map((item) => `<li class="list-group-item">
-    <img style="width: 100%; height: 100%; max-width: 250px; max-height: 250px; border: 1px solid black;" src="/maps/${escapeHtml(item.file)}" />
+    <img style="max-width: 250px; max-height: 250px; border: 1px solid black;" src="/maps/${escapeHtml(item.file)}" />
     <br />
     ${new Date(item.date).toLocaleString()}
     <br />
