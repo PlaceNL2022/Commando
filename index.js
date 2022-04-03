@@ -18,6 +18,7 @@ var appData = {
         { file: 'blank.png', reason: 'Init ^Noah', date: 1648890843309 }
     ]
 };
+var brandUsage = {};
 
 if (fs.existsSync(`${__dirname}/data.json`)) {
     appData = require(`${__dirname}/data.json`);
@@ -121,24 +122,81 @@ wsServer.on('connection', (socket, req) => {
         }
 
         switch (data.type.toLowerCase()) {
-            case 'getmap':
-                socket.send(JSON.stringify({ type: 'map', data: appData.currentMap, reason: null }));
+            case "brand":
+                const { brand } = data;
+                if (
+                    brand === undefined ||
+                    brand.length < 1 ||
+                    brand.length > 32 ||
+                    !isAlphaNumeric(brand)
+                )
+                    return;
+                socket.brand = data.brand;
                 break;
-            case 'ping':
-                socket.send(JSON.stringify({ type: 'pong' }));
+            case "getmap":
+                socket.send(
+                    JSON.stringify({
+                        type: "map",
+                        data: appData.currentMap,
+                        reason: null,
+                    })
+                );
                 break;
-            case 'placepixel':
+            case "ping":
+                socket.send(JSON.stringify({ type: "pong" }));
+                break;
+            case "placepixel":
                 const { x, y, color } = data;
-                if (x === undefined || y === undefined || color === undefined && x < 0 || x > 1999 || y < 0 || y > 1999 || color < 0 || color > 32) return;
-                console.log(`[${new Date().toLocaleString()}] Pixel placed: ${x}, ${y}: ${color}`);
+                if (
+                    x === undefined ||
+                    y === undefined ||
+                    (color === undefined && x < 0) ||
+                    x > 1999 ||
+                    y < 0 ||
+                    y > 1999 ||
+                    color < 0 ||
+                    color > 32
+                )
+                    return;
+                console.log(
+                    `[${new Date().toLocaleString()}] Pixel placed: ${x}, ${y}: ${color}`
+                );
                 break;
             default:
-                socket.send(JSON.stringify({ type: 'error', data: 'Unknown command!' }));
+                socket.send(
+                    JSON.stringify({ type: "error", data: "Unknown command!" })
+                );
                 break;
         }
     });
 });
 
+setInterval(() => {
+    brandUsage = Array.from(wsServer.clients)
+        .map((c) => c.brand)
+        .reduce(function (acc, curr) {
+            return acc[curr] ? ++acc[curr] : (acc[curr] = 1), acc;
+        }, {});
+    console.log(brandUsage);
+}, 1000);
+
 function rgbToHex(r, g, b) {
     return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
 }
+
+function isAlphaNumeric(str) {
+    var code, i, len;
+
+    for (i = 0, len = str.length; i < len; i++) {
+        code = str.charCodeAt(i);
+        if (
+            !(code > 47 && code < 58) && // numeric (0-9)
+            !(code > 64 && code < 91) && // upper alpha (A-Z)
+            !(code > 96 && code < 123)
+        ) {
+            // lower alpha (a-z)
+            return false;
+        }
+    }
+    return true;
+}  
