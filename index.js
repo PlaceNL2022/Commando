@@ -16,6 +16,7 @@ var appData = {
         { file: 'blank.png', reason: 'Init ^Noah', date: 1648890843309 }
     ]
 };
+var brandUsage = {};
 var socketId = 0;
 
 if (fs.existsSync(`${__dirname}/data.json`)) {
@@ -36,6 +37,7 @@ app.get('/api/stats', (req, res) => {
     res.json({
         connectionCount: wsServer.clients.size,
         ...appData,
+        brands: brandUsage,
         date: Date.now()
     });
 });
@@ -140,6 +142,13 @@ wsServer.on('connection', (socket) => {
         }
     });
 });
+
+setInterval(() => {
+    brandUsage = Array.from(wsServer.clients).map(c => c.brand).reduce(function (acc, curr) {
+        return acc[curr] ? ++acc[curr] : acc[curr] = 1, acc
+    }, {});
+    console.log(brandUsage);
+}, 1000);
 
 function rgbToHex(r, g, b) {
     return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
