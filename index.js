@@ -98,10 +98,10 @@ app.get('/api/map', (req, res) => {
 });
 
 app.post('/updateorders', upload.single('image'), async (req, res) => {
-    if (!req.body?.password || req.body?.password !== process.env.PASSWORD)
+    if (!req.body || !req.body?.password || req.body?.password !== process.env.PASSWORD)
         return lib.handleUpdateError(req, res, 'Incorrect password');
 
-    if (req.file.mimetype !== 'image/png') 
+    if (!req?.file || req.file?.mimetype !== 'image/png') 
         return lib.handleUpdateError(req, res, 'The file must be PNG!');
 
     getPixels(req.file.path, 'image/png', function (err, pixels) {
