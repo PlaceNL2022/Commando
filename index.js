@@ -36,6 +36,7 @@ app.use(express.static(`${__dirname}/static`));
 
 app.get('/api/stats', (req, res) => {
     res.json({
+        rawConnectionCount: wsServer.clients.size,
         connectionCount: userCount,
         ...appData,
         brands: brandUsage,
