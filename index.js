@@ -10,6 +10,17 @@ const upload = multer({ dest: `${__dirname}/uploads/` });
 
 const VALID_COLORS = ['#BE0039', '#FF4500', '#FFA800', '#FFD635', '#00A368', '#00CC78', '#7EED56', '#00756F', '#009EAA', '#2450A4', '#3690EA', '#51E9F4', '#493AC1', '#6A5CFF', '#811E9F', '#B44AC0', '#FF3881', '#FF99AA', '#6D482F', '#9C6926', '#000000', '#898D90', '#D4D7D9', '#FFFFFF'];
 
+// create empty array with same length as Valid Colors
+const VALID_COLORS_RGB = new Array(VALID_COLORS.length).fill(0);
+
+// convert hex colors in VALID_COLORS to rgb
+for (let i = 0; i < VALID_COLORS.length; i++) {
+    let hex = VALID_COLORS[i];
+    let rgb = hex.match(/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
+    rgb = rgb.map(x => parseInt(x, 16));
+    VALID_COLORS_RGB[i] = {r: rgb[1], g: rgb[2],b: rgb[3]};
+}
+
 var appData = {
     currentMap: 'blank.png',
     mapHistory: [
@@ -73,12 +84,26 @@ app.post('/updateorders', upload.single('image'), async (req, res) => {
             const r = pixels.data[i * 4];
             const g = pixels.data[(i * 4) + 1];
             const b = pixels.data[(i * 4) + 2];
+            var rgb_color = {r: r, g: g, b: b}
 
             const hex = rgbToHex(r, g, b);
             if (VALID_COLORS.indexOf(hex) === -1) {
                 res.send(`Pixel op ${i % 2000}, ${Math.floor(i / 2000)} heeft ongeldige kleur.`);
-                fs.unlinkSync(req.file.path);
-                return;
+                // find the closest color to rgb_color in VALID_COLORS_RGB and update pixels.data
+                var closest_color = VALID_COLORS_RGB[0];
+                var closest_color_index = 0; // deze index kunnen we gebruiken om aan te geven welke kleur vervangen is
+                for (var j = 0; j < VALID_COLORS_RGB.length; j++) {
+                    const color = VALID_COLORS_RGB[j];
+                    const distance = Math.sqrt(Math.pow(rgb_color.r - color.r, 2) + Math.pow(rgb_color.g - color.g, 2) + Math.pow(rgb_color.b - color.b, 2));
+                    if (distance < Math.sqrt(Math.pow(rgb_color.r - closest_color.r, 2) + Math.pow(rgb_color.g - closest_color.g, 2) + Math.pow(rgb_color.b - closest_color.b, 2))) {
+                        closest_color = color;
+                        closest_color_index = j;
+                    }
+                }
+                pixels.data[i * 4] = closest_color.r;
+                pixels.data[(i * 4) + 1] = closest_color.g;
+                pixels.data[(i * 4) + 2] = closest_color.b;
+                res.send(`Pixel kleur is vervangen voor ${closest_color}, #${rgbToHex(closest_color.r, closest_color.g, closest_color.b)}.`);
             }
         }
 
