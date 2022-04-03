@@ -11,6 +11,7 @@ const getPixels = require('get-pixels');
 const multer = require('multer');
 const upload = multer({ dest: `${__dirname}/uploads/` });
 
+const PORT = process.env.PORT || 3987;
 const COLOR_MAPPINGS = {
     '#BE0039': 1,
     '#FF4500': 2,
@@ -51,8 +52,9 @@ if (fs.existsSync(`${__dirname}/data.json`)) {
     appData = require(`${__dirname}/data.json`);
 }
 
-const server = app.listen(3987);
+const server = app.listen(PORT);
 const wsServer = new ws.Server({ server: server, path: '/api/ws' });
+lib.log(`Server starting at port ${PORT}`);
 
 app.use('/maps', (req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
@@ -63,6 +65,7 @@ app.use('/maps', express.static(`${__dirname}/maps`));
 app.use(express.static(`${__dirname}/static`));
 
 let recentHistory = lib.getRecent(appData.mapHistory);
+let brandUsage = {};
 
 app.get('/api/stats', (req, res) => {
     res.json({
@@ -152,7 +155,11 @@ let pixelsLastPlaced = {};
 
 wsServer.on('connection', (socket) => {
     socket._id = randomUUID().slice(0, 8);
-    lib.log(`[+] Client ${socket._id} connected`);
+
+    socket.client_ip = req.headers['CF-Connecting-IP'] || req.headers['X-Forwarded-For'] || req.headers['X-Real-IP'] || req.socket.remoteAddress;
+    socket.client_ua = req.headers['user-agent'] || "missing user-agent";
+
+    lib.log(`[+] Client ${socket._id} connected from '${socket.client_ip}' - '${socket.client_ua}'`);
 
     socket.on('close', () => {
         lib.log(`[-] Client ${socket._id} disconnected`);
@@ -173,6 +180,17 @@ wsServer.on('connection', (socket) => {
         }
 
         switch (data.type.toLowerCase()) {
+            case "brand":
+                const { brand } = data;
+                if (
+                    brand === undefined ||
+                    brand.length < 1 ||
+                    brand.length > 32 ||
+                    !isAlphaNumeric(brand)
+                )
+                    return;
+                socket.brand = data.brand;
+                break;
             case 'getmap':
                 socket.send(JSON.stringify({ type: 'map', data: appData.currentMap, reason: null }));
                 break;
@@ -194,11 +212,21 @@ wsServer.on('connection', (socket) => {
                 socket.send(JSON.stringify({ type: 'pong' }));
                 break;
             default:
-                socket.send(JSON.stringify({ type: 'error', data: 'Unknown command!' }));
+                socket.send(
+                    JSON.stringify({ type: "error", data: "Unknown command!" })
+                );
                 break;
         }
     });
 });
+
+setInterval(() => {
+    brandUsage = Array.from(wsServer.clients)
+    .map((c) => c.brand)
+    .reduce(function (acc, curr) {
+        return acc[curr] ? ++acc[curr] : (acc[curr] = 1), acc;
+    }, {});
+}, (3 * 1000));
 
 setInterval(() => {
     lib.saveAppdata(appData);
