@@ -40,6 +40,7 @@ app.get('/api/stats', (req, res) => {
     res.json({
         connectionCount: wsServer.clients.size,
         ...appData,
+        brands: brandUsage,
         date: Date.now()
     });
 });
