@@ -72,12 +72,12 @@
                 document.querySelector('[data-statistic=\'connectionCount\']').innerText = data.connectionCount;
                 document.querySelector('.current-order').src = `/maps/${data.currentMap}`;
                 document.querySelector('.maphistory').innerHTML = data.mapHistory.reverse().map((item) => `<li class="list-group-item">
-    <img height="250" style="border: 1px solid black;" src="/maps/${escapeHtml(item.file)}" />
-    <br />
-    ${new Date(item.date).toLocaleString()}
-    <br />
-    ${escapeHtml(item.reason)}
-</li>`).join('');
+                    <img height="250" style="border: 1px solid black;" src="/maps/${escapeHtml(item.file)}" />
+                    <br />
+                    ${new Date(item.date).toLocaleString()}
+                    <br />
+                    ${escapeHtml(item.reason)}
+                </li>`).join('');
             });
         }
 
@@ -92,7 +92,7 @@
 
 
         updateStats();
-        setInterval(updateStats, 5000);
+        setInterval(updateStats, 15000);
     </script>
 </body>
 
