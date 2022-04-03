@@ -17,6 +17,7 @@ var appData = {
     ]
 };
 var brandUsage = {};
+var userCount = 0;
 var socketId = 0;
 
 if (fs.existsSync(`${__dirname}/data.json`)) {
@@ -35,7 +36,7 @@ app.use(express.static(`${__dirname}/static`));
 
 app.get('/api/stats', (req, res) => {
     res.json({
-        connectionCount: wsServer.clients.size,
+        connectionCount: userCount,
         ...appData,
         brands: brandUsage,
         date: Date.now()
@@ -100,6 +101,7 @@ app.post('/updateorders', upload.single('image'), async (req, res) => {
 wsServer.on('connection', (socket) => {
     socket.id = socketId++;
     socket.brand = 'unknown';
+    socket.lastActivity = Date.now() - (5 * 6 * 1000);
     console.log(`[${new Date().toLocaleString()}] [+] Client connected: ${socket.id}`);
 
     socket.on('close', () => {
@@ -134,6 +136,7 @@ wsServer.on('connection', (socket) => {
             case 'placepixel':
                 const { x, y, color } = data;
                 if (x === undefined || y === undefined || color === undefined && x < 0 || x > 1999 || y < 0 || y > 1999 || color < 0 || color > 32) return;
+                socket.lastActivity = Date.now();
                 // console.log(`[${new Date().toLocaleString()}] Pixel placed by ${socket.id}: ${x}, ${y}: ${color}`);
                 break;
             default:
@@ -144,7 +147,9 @@ wsServer.on('connection', (socket) => {
 });
 
 setInterval(() => {
-    brandUsage = Array.from(wsServer.clients).map(c => c.brand).reduce(function (acc, curr) {
+    const threshold = Date.now() + (11 * 60 * 1000); // 11 min cooldown.
+    userCount = Array.from(wsServer.clients).filter(c => c.lastActivity >= threshold).length;
+    brandUsage = Array.from(wsServer.clients).filter(c => c.lastActivity >= threshold).map(c => c.brand).reduce(function (acc, curr) {
         return acc[curr] ? ++acc[curr] : acc[curr] = 1, acc
     }, {});
 }, 1000);
