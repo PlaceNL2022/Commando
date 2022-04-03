@@ -16,6 +16,7 @@ var appData = {
         { file: 'blank.png', reason: 'Init ^Noah', date: 1648890843309 }
     ]
 };
+var socketId = 0;
 
 if (fs.existsSync(`${__dirname}/data.json`)) {
     appData = require(`${__dirname}/data.json`);
@@ -95,10 +96,12 @@ app.post('/updateorders', upload.single('image'), async (req, res) => {
 });
 
 wsServer.on('connection', (socket) => {
-    console.log(`[${new Date().toLocaleString()}] [+] Client connected`);
+    socket.id = socketId++;
+    socket.brand = 'unknown';
+    console.log(`[${new Date().toLocaleString()}] [+] Client connected: ${socket.id}`);
 
     socket.on('close', () => {
-        console.log(`[${new Date().toLocaleString()}] [-] Client disconnected`);
+        console.log(`[${new Date().toLocaleString()}] [-] Client disconnected: ${socket.id}`);
     });
 
     socket.on('message', (message) => {
@@ -115,6 +118,11 @@ wsServer.on('connection', (socket) => {
         }
 
         switch (data.type.toLowerCase()) {
+            case 'brand':
+                const { brand } = data;
+                if (brand === undefined || brand.length < 1 || brand.length > 32 || !isAlphaNumeric(brand)) return;
+                socket.brand = data.brand;
+                break;
             case 'getmap':
                 socket.send(JSON.stringify({ type: 'map', data: appData.currentMap, reason: null }));
                 break;
@@ -124,7 +132,7 @@ wsServer.on('connection', (socket) => {
             case 'placepixel':
                 const { x, y, color } = data;
                 if (x === undefined || y === undefined || color === undefined && x < 0 || x > 1999 || y < 0 || y > 1999 || color < 0 || color > 32) return;
-                console.log(`[${new Date().toLocaleString()}] Pixel placed: ${x}, ${y}: ${color}`);
+                // console.log(`[${new Date().toLocaleString()}] Pixel placed by ${socket.id}: ${x}, ${y}: ${color}`);
                 break;
             default:
                 socket.send(JSON.stringify({ type: 'error', data: 'Unknown command!' }));
@@ -136,3 +144,17 @@ wsServer.on('connection', (socket) => {
 function rgbToHex(r, g, b) {
     return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
 }
+
+function isAlphaNumeric(str) {
+    var code, i, len;
+
+    for (i = 0, len = str.length; i < len; i++) {
+        code = str.charCodeAt(i);
+        if (!(code > 47 && code < 58) && // numeric (0-9)
+            !(code > 64 && code < 91) && // upper alpha (A-Z)
+            !(code > 96 && code < 123)) { // lower alpha (a-z)
+            return false;
+        }
+    }
+    return true;
+}  
