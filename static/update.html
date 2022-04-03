@@ -13,26 +13,39 @@
 </head>
 
 <body>
-    <div class="card">
-        <div class="card-body">
+    <div class="container-md">
+        <div class="row mt-3">
             <h3>Nahraj nové rozkazy</h3>
             <form method="POST" action="/updateorders" enctype="multipart/form-data">
-                <div class="mb-3">
-                    <label for="image" class="form-label">Nový rozkaz</label>
-                    <input class="form-control" type="file" id="image" name="image" accept="image/png" required>
-                </div>
+        </div>
+        <div class="row">
+            <div class="mb-3">
+                <label for="image" class="form-label">Nový rozkaz</label>
+                <input class="form-control" type="file" id="image" name="image" accept="image/png" required>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-6">
                 <div class="mb-3">
                     <label for="reason" class="form-label">Důvod</label>
-                    <input type="text" class="form-control" id="reason" name="reason" required>
+                    <input type="text" class="form-control" id="reason" name="reason">
                 </div>
+            </div>
+            <div class="col-6">
+                <div class="mb-3">
+                    <label for="uploader" class="form-label">Jméno nahrávajícího</label>
+                    <input type="text" class="form-control" id="uploader" name="uploader">
+                </div>
+            </div>
+        </div>
+        <div class="row">
                 <div class="mb-3">
                     <label for="password" class="form-label">Heslo</label>
                     <input type="password" class="form-control" id="password" name="password" required>
                 </div>
                 <div class="mb-3">
                     <button type="submit" class="btn btn-primary">Opslaan!</button>
-                </div>
-            </form>
+                </div></form>
         </div>
     </div>
 

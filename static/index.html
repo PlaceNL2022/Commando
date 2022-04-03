@@ -19,6 +19,28 @@
             font-size: 5rem !important;
         }
 
+        .small-statistic {
+            font-size: 2rem !important;
+        }
+
+        #control-hover {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 160px;
+            height: 30px;
+        }
+
+        .order-control {
+            display: none;
+            width: 100%;
+            height: 100%;
+        }
+
+        #control-hover:hover .order-control {
+            display: block;
+        }
+
         img {
             image-rendering: optimizeSpeed;
             image-rendering: -moz-crisp-edges;
@@ -27,6 +49,10 @@
             image-rendering: pixelated;
             image-rendering: optimize-contrast;
             -ms-interpolation-mode: nearest-neighbor;
+        }
+
+        .italic {
+            font-style: italic;
         }
     </style>
 
@@ -38,23 +64,26 @@
         <div class="card-body text-center">
             <h1 data-statistic="connectionCount" class="odometer large-statistic">0</h1>
             <h3>Připojení klienti</h3>
+            <h4>Položených pixelů: <span data-statistic="pixelsPlaced" class="odometer small-statistic">0</span></h4>
         </div>
     </div>
+    
     <div class="card">
         <div class="card-body text-center">
-            <img class="current-order" width="1000" height="500" style="border: 1px solid black;" />
-            <h3>Aktuální rozkaz</h3>
+            <img class="current-map" width="1000" height="500" style="border: 1px solid black;" />
+            <h3>Aktuální rozkaz <span class="italic">(<a href="/currentmap">PNG</a>, <a href="/currentorders">JSON</a>)</span></h3>
         </div>
     </div>
     <div class="card">
         <div class="card-body text-center">
             <h3>Historie rozkazů</h3>
-            <ul class="list-group list-group-flush maphistory">
-            </ul>
+            <ul class="list-group list-group-flush map-history"></ul>
         </div>
     </div>
 
-    <a href="/update.html" class="text-muted text-decoration-none">order control</a>
+    <div id="control-hover">
+        <a href="/update.html" class="text-center text-decoration-none order-control italic">Order Control</a>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p"
@@ -70,13 +99,21 @@
                 const data = await res.json();
 
                 document.querySelector('[data-statistic=\'connectionCount\']').innerText = data.connectionCount;
-                document.querySelector('.current-order').src = `/maps/${data.currentMap}`;
-                document.querySelector('.maphistory').innerHTML = data.mapHistory.reverse().map((item) => `<li class="list-group-item">
-                    <img height="250" style="border: 1px solid black;" src="/maps/${escapeHtml(item.file)}" />
+                document.querySelector('[data-statistic=\'pixelsPlaced\']').innerText = data.pixelsPlaced;
+            });
+        }
+
+        function updateMap() {
+            fetch('/api/map').then(async (res) => {
+                const data = await res.json();
+
+                document.querySelector('.current-map').src = `/maps/${data.currentMap}`;
+                document.querySelector('.map-history').innerHTML = data.mapHistory.map((item) => `<li class="list-group-item">
+                    <img height="250" style="border: 1px solid black;" src="/maps/${escapeHtml(item.file)}" loading="lazy" />
                     <br />
-                    ${new Date(item.date).toLocaleString()}
+                    ${new Date(item.date).toLocaleString('cs-CZ')}${item?.uploader ? " by " + item.uploader : ""}
                     <br />
-                    ${escapeHtml(item.reason)}
+                    ${escapeHtml(item?.reason || "Důvod neuveden")} <span class="italic">(<a href="/maps/${escapeHtml(item.file)}">PNG</a>)</span>
                 </li>`).join('');
             });
         }
@@ -92,7 +129,10 @@
 
 
         updateStats();
-        setInterval(updateStats, 15000);
+        updateMap();
+
+        setInterval(updateStats, 5000);
+        setInterval(updateMap, 30000);
     </script>
 </body>
 

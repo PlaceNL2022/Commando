@@ -39,18 +39,18 @@ const COLOR_MAPPINGS = {
     '#FFFFFF': 31
 };
 
-let appData = {
-    currentOrders: [],
-    currentMap: 'blank.png',
-    mapHistory: [
+let appData = {};
+if (fs.existsSync(`${__dirname}/data.json`))
+    appData = require(`${__dirname}/data.json`);
+
+appData = {
+    currentMap: appData?.currentMap || 'blank.png',
+    currentOrders: appData?.currentOrders || 'blank.json',
+    mapHistory: appData?.mapHistory || [
         { file: 'blank.png', reason: 'Init ^Noah', date: 1648890843309 }
     ],
-    pixelsPlaced: 0
+    orderLength: appData?.orderLength || 0
 };
-
-if (fs.existsSync(`${__dirname}/data.json`)) {
-    appData = require(`${__dirname}/data.json`);
-}
 
 const server = app.listen(PORT);
 const wsServer = new ws.Server({ server: server, path: '/api/ws' });
@@ -61,18 +61,28 @@ app.use('/maps', (req, res, next) => {
     next();
 });
 
+app.use('/orders', (req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    next();
+});
+
 app.use('/maps', express.static(`${__dirname}/maps`));
+app.use('/orders', express.static(`${__dirname}/orders`));
+
 app.use(express.static(`${__dirname}/static`));
 
-let recentHistory = lib.getRecent(appData.mapHistory);
+app.get('/currentmap', (req, res) => res.redirect(`/maps/${appData.currentMap}`));
+app.get('/currentorders', (req, res) => res.redirect(`/orders/${appData.currentOrders}`));
+
+let recentHistory = lib.getRecentMaps(appData.mapHistory);
+let pixelsPlaced = 0;
 let brandUsage = {};
 
 app.get('/api/stats', (req, res) => {
     res.json({
         connectionCount: wsServer.clients.size,
-        pixelsPlaced: appData.pixelsPlaced,
-        currentMap: appData.currentMap,
-        mapHistory: recentHistory,
+        pixelsPlaced: pixelsPlaced,
+        brandUsage: brandUsage,
         date: Date.now()
     });
 });
@@ -80,14 +90,9 @@ app.get('/api/stats', (req, res) => {
 app.get('/api/map', (req, res) => {
     res.json({
         currentMap: appData.currentMap,
-        mapHistory: appData.mapHistory,
-        date: Date.now()
-    });
-});
-
-app.get('/api/orders', (req, res) => {
-    res.json({
         orders: appData.currentOrders,
+        orderLength: appData.orderLength,
+        mapHistory: recentHistory,
         date: Date.now()
     });
 });
@@ -108,7 +113,7 @@ app.post('/updateorders', upload.single('image'), async (req, res) => {
         if (pixels.data.length !== 8000000)
             return lib.handleUpdateError(req, res, 'The file must be 2000x1000 pixels!');
 
-        let updatedOrders = [];
+        let orders = [];
         for (var i = 0; i < 2000000; i++) {
             const a = pixels.data[(i * 4) + 3];
             if (a !== 255) continue;
@@ -119,31 +124,43 @@ app.post('/updateorders', upload.single('image'), async (req, res) => {
                 g = pixels.data[(i * 4) + 1],
                 b = pixels.data[(i * 4) + 2];
 
-            const hex = rgbToHex(r, g, b);
+            const hex = lib.rgbToHex(r, g, b);
             const color = COLOR_MAPPINGS[hex];
 
             if (!color) 
                 return lib.handleUpdateError(req, res, `A pixel on ${x}, ${y} has a wrong color.<br>R: ${r}, G: ${g}, B: ${b}, A: ${a}`);
 
-            updatedOrders.push([x, y, color]);
+            orders.push([x, y, color]);
         }
 
-        const file = `${Date.now()}.png`;
+        const pngFile = `${Date.now()}.png`;
+        const jsonFile = `${Date.now()}.json`;
 
-        fs.copyFileSync(req.file.path, `${__dirname}/maps/${file}`);
+        fs.copyFileSync(req.file.path, `${__dirname}/maps/${pngFile}`);
         fs.unlinkSync(req.file.path);
-        appData.currentOrders = JSON.parse(JSON.stringify(updatedOrders)); // This is bad.
-        appData.currentMap = file;
+
+        fs.writeFileSync(`${__dirname}/orders/${jsonFile}`, JSON.stringify(orders));
+
+        let reason = req.body?.reason || "Důvod neuveden";
+        let uploader = req.body?.uploader;
+
+        appData.currentOrders = jsonFile;
+        appData.orderLength = orders.length;
+
+        appData.currentMap = pngFile;
         appData.mapHistory.push({
-            file,
-            reason: req.body.reason,
-            date: Date.now()
+            date: Date.now(),
+            file: pngFile,
+            orders: jsonFile,
+            reason,
+            uploader
         });
+
         recentHistory = lib.getRecentMaps(appData.mapHistory);
 
         wsServer.clients.forEach((client) => {
-            client.send(JSON.stringify({ type: 'map', data: appData.currentMap, reason: req.body?.reason }));
-            client.send(JSON.stringify({ type: 'orders', data: appData.currentOrders, reason: req.body?.reason }));
+            client.send(JSON.stringify({ type: 'map', data: appData.currentMap, reason }));
+            client.send(JSON.stringify({ type: 'orders', data: appData.currentOrders, reason }));
         });
 
         lib.saveAppdata(appData);
@@ -153,8 +170,9 @@ app.post('/updateorders', upload.single('image'), async (req, res) => {
 
 let pixelsLastPlaced = {};
 
-wsServer.on('connection', (socket) => {
+wsServer.on('connection', (socket, req) => {
     socket._id = randomUUID().slice(0, 8);
+    socket.brand = 'unknown';
 
     socket.client_ip = req.headers['CF-Connecting-IP'] || req.headers['X-Forwarded-For'] || req.headers['X-Real-IP'] || req.socket.remoteAddress;
     socket.client_ua = req.headers['user-agent'] || "missing user-agent";
@@ -175,20 +193,13 @@ wsServer.on('connection', (socket) => {
             return;
         }
 
-        if (!data.type) {
-            socket.send(JSON.stringify({ type: 'error', data: 'Data missing type!' }));
-        }
+        if (!data.type)
+            return socket.send(JSON.stringify({ type: 'error', data: 'Data missing type!' }));
 
         switch (data.type.toLowerCase()) {
             case "brand":
                 const { brand } = data;
-                if (
-                    brand === undefined ||
-                    brand.length < 1 ||
-                    brand.length > 32 ||
-                    !isAlphaNumeric(brand)
-                )
-                    return;
+                if (lib.checkInvalidBrand(brand)) return;
                 socket.brand = data.brand;
                 break;
             case 'getmap':
@@ -203,18 +214,16 @@ wsServer.on('connection', (socket) => {
 
                 const { x, y, color } = data;
                 if (lib.checkIncorrectPlace(x, y, color)) return;
-                lib.log(`Pixel placed by ${id}: ${x}, ${y}: ${color}`);
+                lib.log(`Pixel placed by ${socket._id}: ${x}, ${y}: ${color}`);
 
                 pixelsLastPlaced[socket._id] = Date.now();
-                appData.pixelsPlaced++;
+                pixelsPlaced++;
                 break;
             case 'ping':
                 socket.send(JSON.stringify({ type: 'pong' }));
                 break;
             default:
-                socket.send(
-                    JSON.stringify({ type: "error", data: "Unknown command!" })
-                );
+                socket.send(JSON.stringify({ type: "error", data: "Unknown command!" }));
                 break;
         }
     });
@@ -222,11 +231,11 @@ wsServer.on('connection', (socket) => {
 
 setInterval(() => {
     brandUsage = Array.from(wsServer.clients)
-    .map((c) => c.brand)
-    .reduce(function (acc, curr) {
-        return acc[curr] ? ++acc[curr] : (acc[curr] = 1), acc;
-    }, {});
-}, (3 * 1000));
+        .map((c) => c.brand)
+        .reduce(function (acc, curr) {
+            return acc[curr] ? ++acc[curr] : (acc[curr] = 1), acc;
+        }, {});
+}, (2 * 1000));
 
 setInterval(() => {
     lib.saveAppdata(appData);

@@ -34,15 +34,37 @@ module.exports = {
     saveAppdata: (appData) => {
         try {
             fs.writeFileSync(`${__dirname}/data.json`, JSON.stringify(appData));
-            this.log(`AppData file was saved.`);
+            module.exports.log(`AppData file was saved.`);
         } catch (e) {
-            this.error(`Saving AppData failed: ${err}`);
+            module.exports.error(`Saving AppData failed: ${e}`);
         }
     },
 
+    // Handluje aktualizaci příkazů
     handleUpdateError: (req, res, err) => {
         res.send(err);
         fs.unlinkSync(req.file.path);
-        this.error(`UpdateOrders failed: ${err}`);
+        module.exports.error(`UpdateOrders failed: ${err}`);
+    },
+
+    // Kouká jestli je věc alfanumerická
+    isAlphaNumeric(str) {
+        let code, i, len;
+    
+        for (i = 0, len = str.length; i < len; i++) {
+            code = str.charCodeAt(i);
+            if (
+                !(code > 47 && code < 58) && // numeric (0-9)
+                !(code > 64 && code < 91) && // upper alpha (A-Z)
+                !(code > 96 && code < 123)
+            ) return false; // lower alpha (a-z)
+        }
+
+        return true;
+    },
+
+    // Kontroluje jestli je v pořádku brand
+    checkInvalidBrand(brand) {
+        return (brand === undefined || brand.length < 1 || brand.length > 32 || !module.exports.isAlphaNumeric(brand));
     }
 };
