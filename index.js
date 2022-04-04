@@ -8,6 +8,8 @@ const getPixels = require('get-pixels');
 const multer = require('multer')
 const upload = multer({ dest: `${__dirname}/uploads/` });
 
+const safeCompare = require('safe-compare')
+
 const VALID_COLORS = ['#6D001A', '#BE0039', '#FF4500', '#FFA800', '#FFD635', '#FFF8B8', '#00A368', '#00CC78', '#7EED56', '#00756F', '#009EAA', '#00CCC0', '#2450A4', '#3690EA', '#51E9F4', '#493AC1', '#6A5CFF', '#94B3FF', '#811E9F', '#B44AC0', '#E4ABFF', '#DE107F', '#FF3881', '#FF99AA', '#6D482F', '#9C6926', '#FFB470', '#000000', '#515252', '#898D90', '#D4D7D9', '#FFFFFF'];
 
 var appData = {
@@ -45,8 +47,8 @@ app.get('/api/stats', (req, res) => {
 });
 
 app.post('/updateorders', upload.single('image'), async (req, res) => {
-    if (!req.body || !req.file || !req.body.reason || !req.body.password || req.body.password !== process.env.PASSWORD) {
-        res.send('Ongeldig wachtwoord!');
+    if (!req.body || !req.file || !req.body.reason || !req.body.password || safeCompare(req.body.password, process.env.PASSWORD)) {
+        res.status(401).send('Ongeldig wachtwoord!');
         fs.unlinkSync(req.file.path);
         return;
     }
