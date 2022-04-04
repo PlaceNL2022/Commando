@@ -32,6 +32,26 @@
             image-rendering: optimize-contrast;
             -ms-interpolation-mode: nearest-neighbor;
         }
+
+        #theme-picker-icon {
+            position: fixed;
+            top: 5px;
+            right: 5px;
+            z-index: 10;
+        }
+
+        .dark-mode {
+            background-color: #212020 !important;
+            color: #fff;
+        }
+        .dark-mode .card {
+            background-color: #212020 !important;
+            color: #fff;
+        }
+        .dark-mode .list-group-item {
+            background-color: #212020 !important;
+            color: #fff;
+        }
     </style>
 
     <title>PlaceNL Commando</title>
@@ -57,6 +77,8 @@
             </ul>
         </div>
     </div>
+
+    <div id="theme-picker-icon">☀️</div>
 
     <a href="/update.html" class="text-muted text-decoration-none">order control</a>
 
@@ -97,6 +119,42 @@
 
         updateStats();
         setInterval(updateStats, 5000);
+
+        const THEME_STORAGE_KEY = "THEME_DARKMODE";
+        const themePickerIcon = document.getElementById('theme-picker-icon');
+
+        function isDarkMode() {
+            const storedValue = localStorage.getItem(THEME_STORAGE_KEY)
+            if(storedValue === null) {
+                // Check system theme to default to dark mode when prefered
+                return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            }
+            
+            return storedValue === "true";
+        }
+
+        function setDarkMode(darkMode) {
+            localStorage.setItem(THEME_STORAGE_KEY, darkMode);
+        }
+
+        function updateTheme() {
+            const darkMode = isDarkMode();
+            if(darkMode) {
+                themePickerIcon.innerHTML = "🌑";
+                document.body.classList.add("dark-mode");
+            } else {
+                themePickerIcon.innerHTML = "☀️";
+                document.body.classList.remove("dark-mode");
+            }
+        }
+
+        themePickerIcon.addEventListener('click', function() {
+            const darkMode = isDarkMode();
+            setDarkMode(!darkMode);
+
+            updateTheme();
+        });
+        updateTheme();
     </script>
 </body>
 
