@@ -152,7 +152,7 @@ wsServer.on('connection', (socket) => {
 setInterval(() => {
     const threshold = Date.now() - (11 * 60 * 1000); // 11 min cooldown.
     userCount = Array.from(wsServer.clients).filter(c => c.lastActivity >= threshold && c.brand !== 'unknown').length;
-    brandUsage = Array.from(wsServer.clients).filter(c => c.lastActivity >= threshold && c.brand !== 'unknown').map(c => c.brand).reduce(function (acc, curr) {
+    brandUsage = Array.from(wsServer.clients).filter(c => c.lastActivity >= threshold).map(c => c.brand).reduce(function (acc, curr) {
         return acc[curr] ? ++acc[curr] : acc[curr] = 1, acc
     }, {});
 }, 1000);
