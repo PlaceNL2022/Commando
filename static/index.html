@@ -124,7 +124,13 @@
         const themePickerIcon = document.getElementById('theme-picker-icon');
 
         function isDarkMode() {
-            return localStorage.getItem(THEME_STORAGE_KEY) === "true";
+            const storedValue = localStorage.getItem(THEME_STORAGE_KEY)
+            if(storedValue === null) {
+                // Check system theme to default to dark mode when prefered
+                return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            }
+            
+            return storedValue === "true";
         }
 
         function setDarkMode(darkMode) {
