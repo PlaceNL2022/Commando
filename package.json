@@ -20,6 +20,7 @@
     "express.js": "^1.0.0",
     "get-pixels": "^3.3.3",
     "multer": "^1.4.4",
+    "safe-compare": "^1.1.4",
     "ws": "^8.5.0"
   }
 }
